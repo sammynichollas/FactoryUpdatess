@@ -1,0 +1,1000 @@
+<!-- FILE: admin.html -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HENKATEN BOARD - ADMIN</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
+<!-- LIBRARY PENYIMPANAN DATABASE LOKAL (IndexedDB) -->
+<script src="https://cdn.jsdelivr.net/npm/idb-keyval@6/dist/umd.js"></script>
+
+<!-- LIBRARY EXCEL (SheetJS) -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+<style>
+/* =========================================
+   CSS ADMIN - FULL FEATURES
+   ========================================= */
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f5f5f5; overflow-x: hidden; }
+.watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.12; pointer-events: none; z-index: 0; }
+.watermark img { width: 560px; max-width: 90%; }
+.content { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100vh; }
+
+/* HEADER */
+.header { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; background: #06563d; color: #ffffff; padding: 0 20px; height: 60px; transition: all 0.3s; }
+.header-left { display: flex; align-items: center; gap: 15px; }
+.header-left input, .header-right select { padding: 6px 10px; border-radius: 4px; border: none; font-weight: bold; font-size: 14px; cursor: pointer; color: #333; background: white; }
+#factorySelect { min-width: 150px; }
+#realtimeClock { font-size: 18px; font-weight: bold; letter-spacing: 1px; color: #fff; border-left: 2px solid #ffffff50; padding-left: 15px; }
+.btn-header-action { padding: 6px 15px; border-radius: 4px; border: none; background: white; color: #333; font-size: 14px; cursor: pointer; font-weight: bold; transition: 0.2s; white-space: nowrap; }
+.btn-header-action:hover { background: #e0e0e0; color: #000; }
+.header-center { font-size: 27px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; text-align: center; }
+.header-right { display: flex; gap: 10px; align-items: center; }
+
+/* LAYOUT */
+.main-layout { flex-grow: 1; display: grid; grid-template-columns: 360px 1fr; gap: 10px; padding: 10px; overflow: hidden; }
+.left-col { display: flex; flex-direction: column; gap: 10px; height: 100%; overflow-y: auto; padding-right: 5px; }
+.right-col { display: flex; flex-direction: column; gap: 10px; height: 100%; overflow: hidden; }
+.right-scroll-area { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+/* BOXES */
+.box { background: #e8f5e9; border: 1px solid #c8e6c9; padding: 12px; border-radius: 8px; box-shadow: 0 1px 5px rgba(0,0,0,0.1); }
+.box h3, .box h4 { margin-top: 0; margin-bottom: 8px; font-size: 15px; color: #333; }
+
+.org-preview { width: 100%; min-height: 140px; background: #fff; border: 1px solid #ddd; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; }
+.org-preview img { width: 100%; max-height: 200px; object-fit: contain; }
+
+.absensi-flex { display: flex; flex-direction: column; gap: 5px; align-items: center; }
+.chart-wrapper { position: relative; width: 150px; height: 150px; }
+.chart-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+#centerValue { font-size: 20px; font-weight: bold; }
+.absen-bar { margin-top: 10px; background: #fff; border: 1px solid #ccc; border-radius: 12px; overflow: hidden; width: 100%; }
+.absen-fill { background: #2ecc71; color: white; text-align: center; font-weight: bold; padding: 3px; width: 0%; font-size: 11px; white-space: nowrap; }
+
+.legend { font-size: 10px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 8px; }
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.green{background:#2ecc71}.red{background:#e74c3c}.blue-dark{background:#1f3c88}.blue-light{background:#5dade2}.orange{background:#f39c12}.pink{background:#ff69b4}.purple{background:#8e44ad}.yellow{background:#f1c40f}
+
+.input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+input, select, button { width: 100%; padding: 5px; margin: 2px 0; box-sizing: border-box; font-size: 12px; background: white; border: 1px solid #aaa; border-radius: 3px; }
+button { background: #2ecc71; color: #fff; border: none; border-radius: 4px; cursor: pointer; padding: 8px; font-weight: bold; }
+
+.report-stats-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 10px; margin-top: 10px; }
+.report-stat-item { background: #fff; border: 1px solid #c8e6c9; border-radius: 6px; padding: 10px 4px; text-align: center; display: flex; flex-direction: column; justify-content: center; min-height: 85px; }
+.stat-man { background: rgba(231, 76, 60, 0.15) !important; border-color: #e74c3c !important; }
+.stat-material { background: rgba(241, 196, 15, 0.15) !important; border-color: #f1c40f !important; }
+.stat-machine { background: rgba(52, 152, 219, 0.15) !important; border-color: #3498db !important; }
+.stat-method { background: rgba(46, 204, 113, 0.15) !important; border-color: #2ecc71 !important; }
+.report-stat-value { font-size: 28px; font-weight: bold; color: #006c2d; margin-bottom: 4px; line-height: 1; }
+.report-stat-label { font-size: 11px; color: #555; text-transform: uppercase; font-weight: bold; line-height: 1.2; }
+
+.report-btn-group { display: flex; gap: 8px; width: 50%; }
+.report-btn { flex: 1; padding: 8px 12px; font-size: 13px; border-radius: 4px; border: none; cursor: pointer; color: white; font-weight: bold; white-space: nowrap; }
+.btn-detail { background: #1f3c88; }
+.btn-trend { background: #27ae60; } 
+
+.log-box { flex-shrink: 0; margin-top: 0; } 
+.scrollBox { max-height: 180px; overflow-y: auto; overflow-x: auto; border: 1px solid #aaa; margin-bottom: 10px; background: white; }
+table.log-table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 600px; }
+table.log-table th { background: #006c2d; color: white; position: sticky; top: 0; padding: 6px; text-align: left; z-index: 2; }
+table.log-table td { border-bottom: 1px solid #eee; padding: 5px 6px; vertical-align: top; }
+table.log-table tr:nth-child(even) { background: #f9f9f9; }
+.btn-delete { background: #e74c3c; color: white; border: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; font-size: 12px; padding: 0; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+
+#keyPersonsContainer, #machineContainer { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.group-container { background: #fff3e0; border: 1px solid #ffb74d; border-radius: 8px; padding: 15px; margin-bottom: 0; margin-top: 15px; position: relative; }
+.group-title { background: #006c2d; color: white; padding: 4px 15px; border-radius: 20px; font-weight: bold; font-size: 13px; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); white-space: nowrap; z-index: 2; }
+.machine-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 10px; margin-top: 5px; }
+
+.box.machine-box { 
+    background: white; border: 1px solid #ddd; position: relative; 
+    padding-top: 35px; padding-bottom: 10px; display: flex; flex-direction: column; justify-content: space-between; 
+}
+.box.machine-box h4 { font-weight: bold; text-align: center; font-size: 13px; margin: 0 0 8px 0; color: #000; text-transform: uppercase; height: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+input[type="file"] { display: none !important; }
+
+.status-lights-container { position: absolute; top: 8px; left: 8px; right: auto; display: flex; gap: 4px; z-index: 10; flex-wrap: wrap; justify-content: flex-start; max-width: 90%; }
+.status-light { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.3); box-shadow: 1px 1px 3px rgba(0,0,0,0.3); flex-shrink: 0; }
+.light-Man { background-color: #e74c3c; } .light-Material { background-color: #f1c40f; } .light-Machine { background-color: #3498db; } .light-Method { background-color: #2ecc71; }    
+
+.preview { width: 100%; height: 85px; background: #fff; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 12px; }
+.preview img { width: 100%; height: 100%; object-fit: cover; }
+
+.circle-wrapper { display: flex; flex-direction: row; justify-content: center; align-items: flex-start; gap: 8px; margin-top: 0px; overflow-x: hidden; }
+.circle-wrapper.compact { gap: 2px; }
+.circle-item { display: flex; flex-direction: column; align-items: center; width: 55px; flex-shrink: 0; }
+.circle-item.compact { width: 45px; }
+
+.circle { width: 50px; height: 50px; border-radius: 50%; background: #fff; border: 1px solid #ddd; cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center; margin-bottom: 3px; transition: all 0.2s; }
+.circle.small { width: 38px; height: 38px; }
+.circle img { width: 100%; height: 100%; object-fit: cover; }
+.operator-name { font-size: 9px; color: #000; text-align: center; line-height: 1.1; font-weight: bold; word-wrap: break-word; width: 100%; min-height: 22px; }
+
+/* MODALS */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; }
+.modal-content { background: white; width: 90%; max-width: 900px; max-height: 90vh; border-radius: 8px; padding: 20px; position: relative; display: flex; flex-direction: column; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #006c2d; padding-bottom: 10px; margin-bottom: 10px; }
+.modal-header h2 { margin: 0; font-size: 20px; color: #006c2d; }
+.close-modal { background: #e74c3c; border: none; color: white; width: 30px; height: 30px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; margin-left: 10px; padding-bottom: 2px; line-height: 0; font-weight: bold; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+.close-modal:hover { background: #c0392b; transform: scale(1.1); }
+.modal-body { overflow-y: auto; flex-grow: 1; }
+.modal-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.modal-table th { background: #006c2d; color: white; padding: 8px; position: sticky; top: 0; }
+.modal-table td { border-bottom: 1px solid #ddd; padding: 8px; }
+.modal-table input { width: 100%; border: 1px solid #ccc; padding: 6px; border-radius: 4px; font-size: 12px; }
+.btn-save-modal { background-color: #2ecc71; color: white; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 0; }
+.btn-exit-modal { background-color: #e74c3c; color: white; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 10px; }
+.modal-group-header { background-color: #eee; color: #333; font-weight: bold; font-size: 13px; padding: 8px !important; text-align: left; border-top: 2px solid #ccc; }
+.btn-delete-row { background-color: #e74c3c; color: white; border: none; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; line-height: 1; }
+.btn-add-section { background-color: #2ecc71; color: white; border: none; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; line-height: 1; }
+
+/* LOGIN SCREEN */
+.login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #e8f5e9; z-index: 9999; display: flex; flex-direction: column; }
+.login-header-bar { display: flex; align-items: center; justify-content: space-between; background: #06563d; color: #ffffff; padding: 0 20px; height: 60px; flex-shrink: 0; }
+.login-body { flex-grow: 1; display: flex; align-items: center; justify-content: center; background: #e8f5e9; }
+.login-box { background: #fff3e0; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: 350px; max-width: 90%; border: 1px solid #ffb74d; }
+.login-box h2 { text-align: center; color: #06563d; margin-bottom: 20px; text-transform: uppercase; }
+.login-box input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+.login-box button { width: 100%; padding: 10px; background: #06563d; color: white; font-size: 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+.error-msg { color: #e74c3c; text-align: center; margin-top: 10px; font-size: 13px; display: none; font-weight: bold; }
+.btn-logout { background: #e74c3c; color: white; border: none; padding: 6px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; margin-left: 10px; margin-right: 0; font-size: 12px; }
+
+/* MEDIA QUERIES */
+@media (min-width: 1600px) {
+    .main-layout { grid-template-columns: 420px 1fr; gap: 20px; padding: 20px; }
+    .header { height: 70px; padding: 0 30px; }
+    .header-center { font-size: 36px; } 
+    .box { padding: 20px; }
+    .box h3 { font-size: 18px; }
+    .machine-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 15px; }
+    .box.machine-box h4 { font-size: 15px; margin-bottom: 10px; }
+    .preview { height: 100px; margin-bottom: 18px; }
+    .circle { width: 58px; height: 58px; }
+    .circle.small { width: 46px; height: 46px; }
+    .circle-item { width: 65px; }
+    .circle-item.compact { width: 52px; }
+    .operator-name { font-size: 11px; }
+    table.log-table { font-size: 13px; }
+    .scrollBox { max-height: 250px; }
+    input, select, button { padding: 8px; font-size: 14px; }
+    .status-light { width: 18px; height: 18px; } 
+}
+
+@media (max-width: 1024px) {
+    .content { height: auto; min-height: 100vh; display: block; }
+    .main-layout { display: flex; flex-direction: column; gap: 15px; height: auto; overflow: visible; }
+    .header { height: auto; flex-direction: column; padding: 15px; gap: 10px; }
+    .header-left, .header-right { width: 100%; justify-content: center; flex-wrap: wrap; gap: 10px; }
+    .header-center { font-size: 22px; margin: 5px 0; text-align: center; width: 100%; order: -1; }
+    .left-col, .right-col { width: 100%; height: auto; overflow: visible; padding-right: 0; }
+    .right-scroll-area { height: auto; max-height: 600px; overflow-y: auto; padding-right: 0; }
+    .report-stats-grid { grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    .report-stat-value { font-size: 20px; }
+    .report-stat-item { min-height: 70px; padding: 5px; }
+    .machine-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    .report-btn-group { width: 100%; margin-top: 5px; }
+    input, select, button { font-size: 14px; padding: 8px; }
+    .modal-content { width: 95%; max-height: 85vh; padding: 15px; }
+    .modal-table { font-size: 11px; }
+    .login-box { width: 90%; }
+}
+
+@media (max-width: 480px) {
+    .report-stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .header-center { font-size: 18px; }
+    #realtimeClock { font-size: 14px; }
+    .chart-wrapper { width: 120px; height: 120px; }
+    #centerValue { font-size: 16px; }
+}
+</style>
+</head>
+
+<body>
+
+<div id="loginScreen" class="login-overlay">
+    <div class="login-header-bar">
+        <div id="loginClock" style="font-size: 18px; font-weight: bold; letter-spacing: 1px; border-left: 2px solid #ffffff50; padding-left: 15px;">00:00:00</div>
+        <div class="header-center">HENKATEN BOARD</div>
+        <div style="width: 80px;"></div>
+    </div>
+    <div class="login-body">
+        <div class="login-box">
+            <h2>Login Admin</h2>
+            <input type="text" id="usernameInput" placeholder="Username" onkeypress="handleEnter(event)">
+            <input type="password" id="passwordInput" placeholder="Password" onkeypress="handleEnter(event)">
+            <button onclick="performLogin()">MASUK</button>
+            <div id="loginError" class="error-msg">Username atau Password Salah!</div>
+        </div>
+    </div>
+</div>
+
+<div class="watermark"><img src="sugity.png"></div>
+
+<div class="content">
+<div class="header">
+    <div class="header-left">
+        <input type="date" id="tanggalHari" onchange="loadAllData()">
+        <button class="btn-logout" onclick="performLogout()">LOGOUT</button>
+        <div id="realtimeClock">00:00:00</div>
+    </div>
+    <div class="header-center" id="displayTitle">HENKATEN BOARD</div>
+    <div class="header-right">
+        <select id="shiftSelect" onchange="loadAllData()">
+            <option value="Shift A">Shift A</option>
+            <option value="Shift B">Shift B</option>
+        </select>
+        <select id="factorySelect" onchange="loadAllData()">
+            <option value="Factory 2">Factory 2</option>
+            <option value="Factory 3 & 4">Factory 3 & 4</option>
+        </select>
+        <button class="btn-header-action" onclick="exportExcel()">📤 Export Excel</button>
+    </div>
+</div>
+
+<div class="main-layout">
+    <div class="left-col">
+        <div class="box">
+            <h3>Organizational Structure</h3>
+            <div class="org-preview" id="orgPreview" onclick="document.getElementById('inputOrg').click()"></div>
+            <input type="file" accept="image/*" id="inputOrg" onchange="handleFile(this, 'orgPreview')">
+        </div>
+        <div class="box absensi-wrapper">
+            <h3>Attendance Chart</h3>
+            <div class="absensi-flex">
+                <div class="chart-wrapper">
+                    <canvas id="myChart"></canvas>
+                    <div class="chart-center">
+                        <div id="centerValue">0 / 0</div>
+                        <div style="font-size:12px">MP</div>
+                    </div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item"><span class="dot green"></span>Hadir</div>
+                    <div class="legend-item"><span class="dot red"></span>Belum Absen</div>
+                    <div class="legend-item"><span class="dot blue-dark"></span>Pengawas Cuti</div>
+                    <div class="legend-item"><span class="dot blue-light"></span>Pengawas Sakit</div>
+                    <div class="legend-item"><span class="dot orange"></span>Pengawas Ijin</div>
+                    <div class="legend-item"><span class="dot pink"></span>Operator Cuti</div>
+                    <div class="legend-item"><span class="dot purple"></span>Operator Sakit</div>
+                    <div class="legend-item"><span class="dot yellow"></span>Operator Ijin</div>
+                </div>
+            </div>
+            <div class="absen-bar">
+                <div class="absen-fill" id="rasioText">Absensi: 0%</div>
+            </div>
+        </div>
+        <div class="box">
+            <h3>Attendance Input</h3>
+            <div class="input-grid">
+                <input type="number" id="mpHadir" placeholder="MP Hadir" onchange="handleInput(this)">
+                <input type="number" id="mpBelum" placeholder="MP Belum Absen" onchange="handleInput(this)">
+                <input type="number" id="pCuti" placeholder="Pengawas Cuti" onchange="handleInput(this)">
+                <input type="number" id="pSakit" placeholder="Pengawas Sakit" onchange="handleInput(this)">
+                <input type="number" id="pIjin" placeholder="Pengawas Ijin" onchange="handleInput(this)">
+                <input type="number" id="oCuti" placeholder="Operator Cuti" onchange="handleInput(this)">
+                <input type="number" id="oSakit" placeholder="Operator Sakit" onchange="handleInput(this)">
+                <input type="number" id="oIjin" placeholder="Operator Ijin" onchange="handleInput(this)">
+            </div>
+            <button id="btnSaveAttendance" style="margin-top:10px" onclick="saveAttendanceData()">Save Attendance</button>
+        </div>
+        <div class="box">
+            <h3>Factory Updates</h3>
+            <button onclick="showEmployeeModal()">Update Factory</button>
+        </div>
+    </div>
+
+    <div class="right-col">
+        <div class="box report-summary-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap;">
+                <h3 style="margin: 0;">Report Summary & Analytics</h3>
+                <div class="report-btn-group">
+                    <button class="report-btn btn-detail" onclick="showDetailedReport()">📊 Detailed Report</button>
+                    <button class="report-btn btn-trend" onclick="showProblemTrend()">📈 Problem Trend</button>
+                </div>
+            </div>
+            <div class="report-stats-grid">
+                <div class="report-stat-item"><div class="report-stat-value" id="totalMachines">0</div><div class="report-stat-label">Total Machines</div></div>
+                <div class="report-stat-item"><div class="report-stat-value" id="normalMachines">0</div><div class="report-stat-label">Normal Status</div></div>
+                <div class="report-stat-item"><div class="report-stat-value" id="problemMachines">0</div><div class="report-stat-label">Problem Status</div></div>
+                <div class="report-stat-item stat-man"><div class="report-stat-value" id="manProblems">0</div><div class="report-stat-label">Man Problems</div></div>
+                <div class="report-stat-item stat-material"><div class="report-stat-value" id="materialProblems">0</div><div class="report-stat-label">Material Problems</div></div>
+                <div class="report-stat-item stat-machine"><div class="report-stat-value" id="machineProblems">0</div><div class="report-stat-label">Machine Problems</div></div>
+                <div class="report-stat-item stat-method"><div class="report-stat-value" id="methodProblems">0</div><div class="report-stat-label">Method Problems</div></div>
+            </div>
+        </div>
+
+        <div class="right-scroll-area">
+            <div class="box log-box" id="logDisplayBox" style="margin-bottom: 10px;">
+                <h3>Employee Changes Log</h3>
+                <div class="scrollBox" id="logScrollContainer">
+                    <table class="log-table">
+                        <thead><tr><th>Date</th><th>Problem Types</th><th>Location</th><th>Problem Description</th><th>Cause</th><th>Countermeasure</th><th>PIC</th><th>Action</th></tr></thead>
+                        <tbody id="logTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="keyPersonsContainer"></div>
+            <div id="machineContainer"></div>
+            
+            <div class="box log-box" id="logInputBox" style="margin-top: 10px;">
+                <h3>Add New Log</h3>
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px;">
+                    <select id="logJenis"><option value="">-- Problem Type --</option><option>Man</option><option>Material</option><option>Machine</option><option>Method</option></select>
+                    <select id="logLokasi"><option value="">-- Location --</option></select>
+                    <input type="text" id="logPIC" placeholder="PIC">
+                    <input type="text" id="logCause" placeholder="Cause">
+                    <input type="text" id="logCounter" placeholder="Countermeasure">
+                    <input type="text" id="logDeskripsi" placeholder="Problem Description">
+                    <button style="grid-column: span 3;" onclick="tambahLog()">Add Log</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="reportModal" onclick="if(event.target === this) closeModal()">
+    <div class="modal-content">
+        <div class="modal-header"><h2>Detailed Report & Analytics</h2><button class="close-modal" onclick="closeModal()">×</button></div>
+        <div class="modal-body">
+            <table class="modal-table">
+                <thead><tr><th>Date</th><th>Shift</th><th>Factory</th><th>Machine</th><th>Status</th><th>Problem Type</th><th>Description</th><th>PIC</th></tr></thead>
+                <tbody id="reportTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="trendModal" onclick="if(event.target === this) closeTrendModal()">
+    <div class="modal-content" style="max-width: 1000px;">
+        <div class="modal-header"><h2 id="trendTitle">📈 Problem Trend Analysis</h2><button class="close-modal" onclick="closeTrendModal()">×</button></div>
+        <div class="modal-body"><div style="height: 450px; width: 100%;"><canvas id="trendChart"></canvas></div></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="employeeModal">
+    <div class="modal-content">
+        <div class="modal-header"><h2>Factory Updates</h2><div style="display:flex; align-items:center;"><button class="btn-save-modal" onclick="saveEmployeeChanges()">Save & Sync</button><button class="btn-exit-modal" onclick="closeEmployeeModal()">Exit</button></div></div>
+        <div style="background: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 10px; margin-bottom: 15px; border-radius: 4px; font-size: 13px; font-style: italic;"><strong>⚠️ Reminder:</strong> Employee names must be separated by a <b>comma (,)</b>.</div>
+        <div class="modal-body">
+            <table class="modal-table"><thead><tr><th style="width: 30%">Location / Machine</th><th style="width: 15%">Total Employees</th><th style="width: 45%">Employee Names</th><th style="width: 10%">Action</th></tr></thead><tbody id="employeeTableBody"></tbody></table>
+        </div>
+    </div>
+</div>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqzigLh09q_QTAiePom6dMbuVJS7SXSdh8FEVeKxrVR3Js56pEoNkSrA5U8EErMNaiBg/exec";
+let isUserProcessing = false;
+
+function updateClock() {
+    const time = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':');
+    if(document.getElementById('realtimeClock')) document.getElementById('realtimeClock').innerText = time;
+    if(document.getElementById('loginClock')) document.getElementById('loginClock').innerText = time;
+}
+setInterval(updateClock, 1000); updateClock();
+
+function performLogin() {
+    const u = document.getElementById("usernameInput").value;
+    const p = document.getElementById("passwordInput").value;
+    if(u === "AdminSC" && p === "Admin123") {
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("usernameInput").value = "";
+        document.getElementById("passwordInput").value = "";
+        document.getElementById("loginError").style.display = "none";
+        loadAllData();
+    } else { document.getElementById("loginError").style.display = "block"; }
+}
+function handleEnter(e) { if(e.key === "Enter") performLogin(); }
+function performLogout() {
+    if(confirm("Apakah Anda yakin ingin keluar?")) {
+        document.getElementById("loginScreen").style.display = "flex";
+        document.getElementById("loginError").style.display = "none";
+    }
+}
+
+const defaultFactoryConfig = {
+    "Factory 2": [
+        { title: "Key Persons", machines: ["KY Resin", "KY Assy (1)", "KY Assy (2)", "TL Resin", "TL Assy (1)", "TL Assy (2)", "GL"] },
+        { title: "Resin Injection", machines: ["#01-2500T", "#02-3500T", "#03-3500T", "#04-2500T", "#05-3500T","#06-2500T", "#07-2500T", "#08-2500T", "Crane 30T", "Trans. Matl", "Trans. Part"] },
+        { title: "SA Qtr & Door Trim", machines: ["Robot 1", "Robot 2", "Robot 3", "Robot 4", "Robot 5", "Final Check", "SPS", "Setting FG", "Repair Part"] },
+        { title: "SA Doortrim D26A", machines: ["Pos 1", "Pos 2", "Pos 3", "Quality", "Repair Part (Area bawah)", "Setting Fax", "Trans. Child Part"] }
+    ],
+    "Factory 3 & 4": [
+        { title: "Resin Injection (F3)", machines: ["#01-1300T", "#02-1300T", "#03-1300T", "#04-1050T", "#05-2500T", "#06-1600T", "#07-2500T", "#08-2500T", "#09-1600T", "#10-1600T", "#10a-650T", "#13-650T", "#14-650T", "MC Vibration", "Crane 18T", "Crane 7.5T", "Trans. Matl", "Trans. Part"] },
+        { title: "Resin Injection (F4)", machines: ["#01-350T", "#08-350T", "Crane 18T (F4)", "Assy 1", "Assy 2", "Assy 3", "Crushing"] }
+    ]
+};
+
+let activeFactoryConfig = null;
+let customMachineData = {};
+
+function getKey(elementId) {
+    const date = document.getElementById("tanggalHari").value;
+    const factory = document.getElementById("factorySelect").value;
+    const shift = document.getElementById("shiftSelect").value;
+    return `${date}_${factory}_${shift}_${elementId}`;
+}
+
+document.getElementById("tanggalHari").value = new Date().toISOString().split("T")[0];
+
+async function loadAllData() {
+    activeFactoryConfig = await idbKeyval.get("FACTORY_CONFIG") || JSON.parse(JSON.stringify(defaultFactoryConfig));
+    customMachineData = await idbKeyval.get("CUSTOM_MACHINE_DATA") || {};
+    const factory = document.getElementById("factorySelect").value;
+    const shift = document.getElementById("shiftSelect").value;
+    document.getElementById("displayTitle").innerText = "HENKATEN BOARD - " + factory.toUpperCase();
+
+    renderMachines();
+    populateLogLocations();
+    document.querySelectorAll(".input-grid input, #logPIC, #logDeskripsi, #logCause, #logCounter").forEach(el => el.value = "");
+    document.getElementById("orgPreview").innerHTML = "";
+    document.getElementById("logTableBody").innerHTML = "";
+    
+    const inputs = ["mpHadir","mpBelum","pCuti","pSakit","pIjin","oCuti","oSakit","oIjin"];
+    for (const id of inputs) {
+        const val = await idbKeyval.get(getKey(id));
+        if (val) document.getElementById(id).value = val;
+    }
+
+    const orgKey = `ORG_STRUCT_${factory}`;
+    const orgImg = await idbKeyval.get(orgKey);
+    if (orgImg) document.getElementById("orgPreview").innerHTML = `<img src="${orgImg}">`;
+
+    let globalIdx = 1;
+    const groups = activeFactoryConfig[factory] || [];
+    for (const group of groups) {
+        for (const machineName of group.machines) {
+            const idx = globalIdx++;
+            const circlesNeeded = getCircleCount(factory, machineName);
+            if (group.title !== "Key Persons") {
+                const machineImgKey = `MACHINE_BOX_${factory}_fileMachine-${idx}`;
+                const img = await idbKeyval.get(machineImgKey);
+                if(img && document.getElementById(`preview${idx}`)) {
+                    document.getElementById(`preview${idx}`).innerHTML = `<img src="${img}">`;
+                }
+            }
+            for(let c=1; c<=circlesNeeded; c++) {
+                const circleKey = `CIRCLE_${factory}_${shift}_fileCircle-${idx}-${c}`;
+                const circImg = await idbKeyval.get(circleKey);
+                if(circImg) document.getElementById(`circlePreview-${idx}-${c}`).innerHTML = `<img src="${circImg}">`;
+            }
+        }
+    }
+
+    const logs = await idbKeyval.get(getKey("logData")); 
+    if(logs && Array.isArray(logs)) logs.forEach((log, index) => renderLogRow(log, index));
+    
+    buatDiagram(); 
+    updateReportSummary(); 
+    syncLogsFromCloud();
+}
+
+function getCircleCount(factory, name) {
+    if (customMachineData[name] && customMachineData[name].count) return parseInt(customMachineData[name].count);
+    if (factory !== "Factory 2") return 2; 
+    const mapping = { "#01-2500T": 3, "#02-3500T": 2, "#06-2500T": 2, "Crane 30T": 2, "Trans. Part": 2, "Trans. Matl": 2, "Robot 1": 2, "Robot 2": 2, "Robot 4": 2, "Robot 5": 2, "SPS": 2, "Setting FG": 2, "Final Check": 2 };
+    return mapping[name] || 2; 
+}
+
+function renderMachines() {
+    const factory = document.getElementById("factorySelect").value;
+    const shift = document.getElementById("shiftSelect").value; 
+    const groups = activeFactoryConfig[factory] || [];
+    const mainContainer = document.getElementById("machineContainer");
+    const keyContainer = document.getElementById("keyPersonsContainer");
+    mainContainer.innerHTML = ""; keyContainer.innerHTML = "";
+    let globalMachineIndex = 1;
+
+    groups.forEach(group => {
+        const groupDiv = document.createElement("div");
+        groupDiv.className = "group-container";
+        groupDiv.innerHTML = `<div class="group-title">${group.title}</div>`;
+        const gridDiv = document.createElement("div");
+        gridDiv.className = "machine-grid";
+        const isKeyPersons = group.title === "Key Persons";
+
+        group.machines.forEach(machineName => {
+            const idx = globalMachineIndex++;
+            const circlesNeeded = getCircleCount(factory, machineName);
+            const useSmallCircles = circlesNeeded >= 3;
+            const circleClass = useSmallCircles ? "circle small" : "circle";
+            const itemClass = useSmallCircles ? "circle-item compact" : "circle-item";
+            const wrapperClass = useSmallCircles ? "circle-wrapper compact" : "circle-wrapper";
+            let circleHtml = "";
+            let namesList = (customMachineData[machineName] && customMachineData[machineName].names) ? customMachineData[machineName].names.split(',').map(n => n.trim()) : [];
+            for(let c=1; c<=circlesNeeded; c++) {
+                const operatorName = namesList[c-1] ? namesList[c-1] : "";
+                circleHtml += `<div class="${itemClass}"><div class="${circleClass}" id="circlePreview-${idx}-${c}" onclick="document.getElementById('fileCircle-${idx}-${c}').click()"></div><div class="operator-name">${operatorName}</div></div><input type="file" id="fileCircle-${idx}-${c}" accept="image/*" onchange="handleFile(this, 'circlePreview-${idx}-${c}')">`;
+            }
+            let machineImageHtml = isKeyPersons ? "" : `<div class="preview" id="preview${idx}" onclick="document.getElementById('fileMachine-${idx}').click()"></div><input type="file" id="fileMachine-${idx}" accept="image/*" onchange="handleFile(this, 'preview${idx}')">`;
+
+            gridDiv.innerHTML += `
+            <div class="box machine-box" id="machine-${idx}" data-name="${machineName}">
+                <div class="status-lights-container" id="lights-${idx}"></div> 
+                <h4 title="${machineName}">${machineName}</h4>
+                ${machineImageHtml}
+                <div class="${wrapperClass}">${circleHtml}</div>
+            </div>`;
+        });
+        groupDiv.appendChild(gridDiv);
+        if (isKeyPersons) keyContainer.appendChild(groupDiv); else mainContainer.appendChild(groupDiv);
+    });
+}
+
+function handleInput(el) { idbKeyval.set(getKey(el.id), el.value); }
+function handleFile(input, previewId) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById(previewId).innerHTML = `<img src="${e.target.result}">`;
+        let storageKey = getKey(input.id);
+        const factory = document.getElementById("factorySelect").value;
+        const shift = document.getElementById("shiftSelect").value;
+        if (input.id === 'inputOrg') storageKey = `ORG_STRUCT_${factory}`; 
+        else if (input.id.startsWith('fileMachine-')) storageKey = `MACHINE_BOX_${factory}_${input.id}`;
+        else if (input.id.startsWith('fileCircle-')) storageKey = `CIRCLE_${factory}_${shift}_${input.id}`;
+        idbKeyval.set(storageKey, e.target.result);
+    };
+    reader.readAsDataURL(file);
+}
+
+async function syncLogsFromCloud() {
+    if (isUserProcessing) return;
+    const date = document.getElementById("tanggalHari").value;
+    const factory = document.getElementById("factorySelect").value;
+    const shift = document.getElementById("shiftSelect").value;
+    const url = `${SCRIPT_URL}?action=GET_LOGS&date=${date}&factory=${factory}`;
+    try {
+        const response = await fetch(url, { method: "GET" });
+        if (!response.ok) throw new Error("Network error");
+        const jsonResponse = await response.json();
+        const logs = Array.isArray(jsonResponse) ? jsonResponse : (jsonResponse.data || []);
+        const filteredLogs = logs.filter(l => l.tanggal === date && l.factory === factory && l.shift === shift);
+        const localLogs = filteredLogs.map(l => ({
+            tanggal: l.tanggal, jenis: l.jenis, lokasi: l.lokasi, deskripsi: l.deskripsi, cause: l.cause || "", counter: l.counter || "", pic: l.pic
+        }));
+        await idbKeyval.set(getKey("logData"), localLogs);
+        document.getElementById("logTableBody").innerHTML = "";
+        localLogs.forEach((log, index) => renderLogRow(log, index));
+        updateReportSummary(); 
+    } catch (error) { console.error("Auto-sync error:", error); }
+}
+setInterval(syncLogsFromCloud, 10000);
+
+async function tambahLog() {
+    isUserProcessing = true;
+    const btn = document.querySelector("button[onclick='tambahLog()']");
+    const originalText = btn ? btn.innerText : "Add Log";
+    
+    const data = {
+        action: "LOGS",
+        date: document.getElementById("tanggalHari").value,
+        shift: document.getElementById("shiftSelect").value,
+        factory: document.getElementById("factorySelect").value,
+        jenis: document.getElementById("logJenis").value,
+        lokasi: document.getElementById("logLokasi").value,
+        deskripsi: document.getElementById("logDeskripsi").value,
+        cause: document.getElementById("logCause").value,
+        counter: document.getElementById("logCounter").value,
+        pic: document.getElementById("logPIC").value
+    };
+    if (!data.jenis || !data.deskripsi) { isUserProcessing = false; return alert("Harap lengkapi Jenis Problem dan Deskripsi!"); }
+
+    try {
+        if (btn) { btn.innerText = "⏳ Sending..."; btn.disabled = true; btn.style.backgroundColor = "#7f8c8d"; }
+        
+        const localLogData = { tanggal: data.date, jenis: data.jenis, lokasi: data.lokasi, deskripsi: data.deskripsi, cause: data.cause, counter: data.counter, pic: data.pic };
+        const key = getKey("logData");
+        let list = await idbKeyval.get(key) || [];
+        list.push(localLogData);
+        await idbKeyval.set(key, list);
+        
+        document.getElementById("logTableBody").innerHTML = "";
+        list.forEach((log, index) => renderLogRow(log, index));
+        updateReportSummary(); 
+        saveReportSummaryToCloud();
+
+        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(data) });
+        if (btn) { btn.innerText = "✅ Sent!"; btn.style.backgroundColor = "#27ae60"; }
+    } catch (error) {
+        if (btn) { btn.innerText = "⚠️ Saved Locally"; btn.style.backgroundColor = "#f39c12"; }
+    } finally {
+        ["logJenis", "logLokasi", "logDeskripsi", "logCause", "logCounter", "logPIC"].forEach(id => document.getElementById(id).value = "");
+        setTimeout(() => { 
+            if (btn) { btn.innerText = originalText; btn.disabled = false; btn.style.backgroundColor = ""; } 
+            isUserProcessing = false;
+        }, 8000);
+    }
+}
+
+async function hapusLog(index) {
+    if(!confirm("Hapus log ini?")) return;
+    isUserProcessing = true;
+    const key = getKey("logData");
+    let list = await idbKeyval.get(key);
+    if(list && Array.isArray(list)) {
+        list.splice(index, 1);
+        await idbKeyval.set(key, list);
+        document.getElementById("logTableBody").innerHTML = "";
+        list.forEach((log, idx) => renderLogRow(log, idx));
+        updateReportSummary(); 
+        saveReportSummaryToCloud();
+    }
+    setTimeout(() => { isUserProcessing = false; }, 8000);
+}
+
+async function updateReportSummary() {
+    const factory = document.getElementById("factorySelect").value;
+    let totalMachines = 0;
+    (activeFactoryConfig[factory] || []).forEach(g => totalMachines += g.machines.length);
+    document.getElementById('totalMachines').innerText = totalMachines;
+    const logs = await idbKeyval.get(getKey("logData")) || [];
+    let manCount = 0, machineCount = 0, materialCount = 0, methodCount = 0;
+    const machineProblemsMap = {}; 
+    logs.forEach(log => {
+        if(log.jenis === 'Man') manCount++;
+        if(log.jenis === 'Machine') machineCount++;
+        if(log.jenis === 'Material') materialCount++;
+        if(log.jenis === 'Method') methodCount++;
+        if(log.lokasi) {
+            if(!machineProblemsMap[log.lokasi]) machineProblemsMap[log.lokasi] = [];
+            machineProblemsMap[log.lokasi].push(log.jenis);
+        }
+    });
+    document.getElementById('manProblems').innerText = manCount;
+    document.getElementById('machineProblems').innerText = machineCount;
+    document.getElementById('materialProblems').innerText = materialCount;
+    document.getElementById('methodProblems').innerText = methodCount;
+    const problemMachinesCount = Object.keys(machineProblemsMap).length;
+    document.getElementById('problemMachines').innerText = problemMachinesCount;
+    document.getElementById('normalMachines').innerText = totalMachines - problemMachinesCount;
+    updateMachineVisuals(machineProblemsMap);
+}
+
+function updateMachineVisuals(problemsMap) {
+    document.querySelectorAll('.status-lights-container').forEach(container => { container.innerHTML = ''; });
+    for (const [machineName, problemsArray] of Object.entries(problemsMap)) {
+        const safeName = machineName.replace(/"/g, '\\"');
+        const box = document.querySelector(`.machine-box[data-name="${safeName}"]`);
+        if (box) {
+            const lightsContainer = box.querySelector('.status-lights-container');
+            problemsArray.forEach(problemType => {
+                const light = document.createElement('div');
+                light.className = `status-light light-${problemType}`;
+                lightsContainer.appendChild(light);
+            });
+        }
+    }
+}
+
+function saveReportSummaryToCloud() {
+    const factory = document.getElementById("factorySelect").value;
+    let totalMachines = parseInt(document.getElementById('totalMachines').innerText);
+    let problemCount = parseInt(document.getElementById('problemMachines').innerText);
+    
+    const payload = {
+        action: "SAVE_REPORT",
+        date: document.getElementById("tanggalHari").value,
+        shift: document.getElementById("shiftSelect").value,
+        factory: factory,
+        total: totalMachines,
+        normal: totalMachines - problemCount,
+        problem: problemCount,
+        man: document.getElementById('manProblems').innerText, 
+        mat: document.getElementById('materialProblems').innerText, 
+        mac: document.getElementById('machineProblems').innerText, 
+        met: document.getElementById('methodProblems').innerText
+    };
+    fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+}
+
+function populateLogLocations() {
+    const select = document.getElementById("logLokasi");
+    select.innerHTML = '<option value="">-- Location --</option>';
+    const currentFactory = document.getElementById("factorySelect").value;
+    (activeFactoryConfig[currentFactory] || []).forEach(group => {
+        group.machines.forEach(machine => {
+            const opt = document.createElement("option");
+            opt.value = machine; opt.innerText = machine; select.appendChild(opt);
+        });
+    });
+}
+function renderLogRow(log, index) {
+    const tbody = document.getElementById("logTableBody");
+    const row = tbody.insertRow();
+    row.innerHTML = `<td>${log.tanggal}</td><td>${log.jenis}</td><td>${log.lokasi || "-"}</td><td>${log.deskripsi}</td><td>${log.cause || "-"}</td><td>${log.counter || "-"}</td><td>${log.pic}</td><td><button class="btn-delete" onclick="hapusLog(${index})">×</button></td>`;
+}
+async function saveAttendanceData() {
+    const btn = document.getElementById("btnSaveAttendance");
+    const originalText = btn ? btn.innerText : "Save Attendance";
+    try {
+        if(btn) { btn.innerText = "⏳ Sending..."; btn.disabled = true; btn.style.backgroundColor = "#7f8c8d"; }
+        const inputs = ["mpHadir","mpBelum","pCuti","pSakit","pIjin","oCuti","oSakit","oIjin"];
+        for (const id of inputs) { await idbKeyval.set(getKey(id), document.getElementById(id).value); }
+        buatDiagram();
+        const dataKehadiran = {
+            action: "ATTENDANCE", 
+            date: document.getElementById("tanggalHari").value,
+            shift: document.getElementById("shiftSelect").value,
+            factory: document.getElementById("factorySelect").value,
+            mpHadir: document.getElementById("mpHadir").value || 0,
+            mpBelum: document.getElementById("mpBelum").value || 0,
+            pCuti: document.getElementById("pCuti").value || 0,
+            pSakit: document.getElementById("pSakit").value || 0,
+            pIjin: document.getElementById("pIjin").value || 0,
+            oCuti: document.getElementById("oCuti").value || 0,
+            oSakit: document.getElementById("oSakit").value || 0,
+            oIjin: document.getElementById("oIjin").value || 0
+        };
+        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(dataKehadiran) });
+        if(btn) { btn.innerText = "✅ Saved & Sent!"; btn.style.backgroundColor = "#27ae60"; }
+    } catch (error) { if(btn) { btn.innerText = "⚠️ Saved Locally"; btn.style.backgroundColor = "#f39c12"; } } 
+    finally { setTimeout(() => { if(btn) { btn.innerText = originalText; btn.style.backgroundColor = ""; btn.disabled = false; } }, 2000); }
+}
+
+function showDetailedReport() { generateDetailedReport(); document.getElementById('reportModal').style.display = 'flex'; }
+function closeModal() { document.getElementById('reportModal').style.display = 'none'; }
+async function generateDetailedReport() {
+    const factory = document.getElementById("factorySelect").value;
+    const date = document.getElementById("tanggalHari").value;
+    const shift = document.getElementById("shiftSelect").value;
+    const tbody = document.getElementById('reportTableBody');
+    tbody.innerHTML = '';
+    const logs = await idbKeyval.get(getKey("logData")) || [];
+    const logMap = {}; 
+    logs.forEach(l => { if(!logMap[l.lokasi]) logMap[l.lokasi] = []; logMap[l.lokasi].push(l); });
+    for (const group of (activeFactoryConfig[factory] || [])) {
+        for (const machineName of group.machines) {
+            const machineLogs = logMap[machineName];
+            if (machineLogs && machineLogs.length > 0) {
+                machineLogs.forEach(logEntry => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `<td>${date}</td><td>${shift}</td><td>${factory}</td><td>${machineName}</td><td style="font-weight:bold; color:red">PROBLEM</td><td>${logEntry.jenis}</td><td>${logEntry.deskripsi}</td><td>${logEntry.pic}</td>`;
+                });
+            } else {
+                const row = tbody.insertRow();
+                row.innerHTML = `<td>${date}</td><td>${shift}</td><td>${factory}</td><td>${machineName}</td><td style="font-weight:bold; color:green">NORMAL</td><td>-</td><td>Normal</td><td>-</td>`;
+            }
+        }
+    }
+}
+
+let trendChartInstance = null;
+async function showProblemTrend() {
+    const factory = document.getElementById("factorySelect").value;
+    const selectedDate = document.getElementById("tanggalHari").value;
+    const targetMonth = selectedDate.substring(0, 7); // Format YYYY-MM
+
+    document.getElementById('trendModal').style.display = 'flex';
+    document.getElementById('trendTitle').innerText = `📈 Trend Problem ${factory} (${targetMonth})`;
+
+    const allKeys = await idbKeyval.keys();
+    // Filter kunci yang mengandung Factory dan bulan yang dipilih, serta berakhiran _logData
+    const targetKeys = allKeys.filter(key => 
+        key.startsWith(targetMonth) && 
+        key.includes(factory) && 
+        key.endsWith("_logData")
+    );
+
+    let trendMap = {};
+
+    for (const key of targetKeys) {
+        // Format key: YYYY-MM-DD_Factory_Shift_logData
+        // Ambil tanggal dari key agar Shift A dan Shift B pada hari yang sama digabung
+        const parts = key.split('_');
+        const dateKey = parts[0]; 
+
+        const logs = await idbKeyval.get(key);
+        if (Array.isArray(logs)) {
+            if (!trendMap[dateKey]) {
+                trendMap[dateKey] = { Man: 0, Material: 0, Machine: 0, Method: 0 };
+            }
+            logs.forEach(log => {
+                if (trendMap[dateKey].hasOwnProperty(log.jenis)) {
+                    trendMap[dateKey][log.jenis]++;
+                }
+            });
+        }
+    }
+
+    const sortedDays = Object.keys(trendMap).sort();
+    const dataMan = sortedDays.map(d => trendMap[d].Man);
+    const dataMaterial = sortedDays.map(d => trendMap[d].Material);
+    const dataMachine = sortedDays.map(d => trendMap[d].Machine);
+    const dataMethod = sortedDays.map(d => trendMap[d].Method);
+
+    if (trendChartInstance) { trendChartInstance.destroy(); }
+
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    trendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: sortedDays,
+            datasets: [
+                { label: 'Man', data: dataMan, borderColor: '#e74c3c', backgroundColor: '#e74c3c', tension: 0.3 },
+                { label: 'Material', data: dataMaterial, borderColor: '#f1c40f', backgroundColor: '#f1c40f', tension: 0.3 },
+                { label: 'Machine', data: dataMachine, borderColor: '#3498db', backgroundColor: '#3498db', tension: 0.3 },
+                { label: 'Method', data: dataMethod, borderColor: '#2ecc71', backgroundColor: '#2ecc71', tension: 0.3 }
+            ]
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { 
+                legend: { position: 'bottom' }, 
+                datalabels: { display: false } 
+            }, 
+            scales: { 
+                y: { beginAtZero: true, ticks: { stepSize: 1 } } 
+            } 
+        }
+    });
+}
+function closeTrendModal() { document.getElementById('trendModal').style.display = 'none'; }
+
+Chart.register(ChartDataLabels);
+let chart;
+function buatDiagram(){
+    const data=[
+        +document.getElementById("mpHadir").value||0, +document.getElementById("mpBelum").value||0, 
+        +document.getElementById("pCuti").value||0, +document.getElementById("pSakit").value||0,  
+        +document.getElementById("pIjin").value||0, +document.getElementById("oCuti").value||0,   
+        +document.getElementById("oSakit").value||0, +document.getElementById("oIjin").value||0    
+    ];
+    const total=data.reduce((a,b)=>a+b,0);
+    const centerValue = document.getElementById("centerValue");
+    const rasioText = document.getElementById("rasioText");
+    if(total===0) {
+        centerValue.innerText="0 / 0"; rasioText.style.width="0%"; rasioText.innerText="Absensi: 0%";
+        if(chart) chart.destroy(); 
+        chart=new Chart(document.getElementById("myChart"),{
+            type:"doughnut",
+            data:{datasets:[{data:[1],backgroundColor:["#eeeeee"],borderWidth:0}]},
+            options:{cutout:"75%",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false},tooltip:{enabled:false}}}
+        });
+        return;
+    }
+    const hadir=data[0];
+    const persen=((hadir/total)*100).toFixed(1);
+    centerValue.innerText=hadir+" / "+total;
+    rasioText.style.width=persen+"%";
+    rasioText.innerText="Absensi: "+persen+"%";
+    if(chart) chart.destroy();
+    chart=new Chart(document.getElementById("myChart"),{
+        type:"doughnut",
+        data:{datasets:[{data:data,backgroundColor:["#2ecc71", "#e74c3c", "#1f3c88", "#5dade2","#f39c12", "#ff69b4", "#8e44ad", "#f1c40f"],borderWidth: 0}]},
+        options:{cutout:"75%",responsive: true,maintainAspectRatio: false,plugins:{legend:{display:false},datalabels:{display:false}}}
+    });
+}
+async function exportExcel() {
+    const selectedDate = document.getElementById("tanggalHari").value;
+    if (!selectedDate) return alert("Harap pilih tanggal terlebih dahulu.");
+    const factory = document.getElementById("factorySelect").value;
+    const targetMonth = selectedDate.substring(0, 7); 
+    const monthLabel = new Date(selectedDate).toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+    const allEntries = await idbKeyval.entries();
+    const monthlyEntries = allEntries.filter(([key, val]) => key.startsWith(targetMonth) && key.includes(factory));
+    if (monthlyEntries.length === 0) return alert(`Tidak ada data ditemukan untuk ${factory} pada bulan ${monthLabel}.`);
+    const attendanceMap = {}; let allLogs = [];
+    monthlyEntries.forEach(([key, val]) => {
+        const firstUnderscore = key.indexOf('_');
+        const dateStr = key.substring(0, firstUnderscore);
+        const remainder = key.substring(firstUnderscore + 1);
+        const shiftMatch = remainder.match(/(.*)_(Shift [AB])_(.*)/);
+        if (shiftMatch && shiftMatch[2]) {
+            const shift = shiftMatch[2];
+            const variableName = shiftMatch[3];
+            if (variableName === 'logData') {
+                if (Array.isArray(val)) val.forEach(logItem => { allLogs.push({ Date: dateStr, Shift: shift, ...logItem }); });
+            } else {
+                const rowKey = `${dateStr}_${shift}`;
+                if (!attendanceMap[rowKey]) attendanceMap[rowKey] = { Date: dateStr, Shift: shift };
+                attendanceMap[rowKey][variableName] = val;
+            }
+        }
+    });
+    const summaryData = [{ "Metric": "Factory", "Value": factory }, { "Metric": "Bulan", "Value": monthLabel }];
+    const attendanceData = Object.values(attendanceMap).sort((a, b) => a.Date.localeCompare(b.Date));
+    const detailedLogsData = allLogs.sort((a,b) => a.Date.localeCompare(b.Date));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), "Summary");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(attendanceData), "Kehadiran");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detailedLogsData), "Logs");
+    XLSX.writeFile(wb, `Henkaten_Report_${factory}_${targetMonth}.xlsx`);
+}
+function startAutoScroll() {
+    const container = document.querySelector('.right-scroll-area');
+    if (!container) return;
+    let scrollSpeed = 0.4; let direction = 1; let isPaused = false; let currentScrollPos = container.scrollTop; 
+    container.addEventListener('mouseenter', () => { isPaused = true; });
+    container.addEventListener('mouseleave', () => { isPaused = false; currentScrollPos = container.scrollTop; });
+    container.addEventListener('touchstart', () => { isPaused = true; });
+    container.addEventListener('touchend', () => { isPaused = false; });
+    function step() {
+        if (!isPaused) {
+            const maxScroll = container.scrollHeight - container.clientHeight;
+            if (maxScroll > 0) {
+                currentScrollPos += (scrollSpeed * direction);
+                container.scrollTop = currentScrollPos;
+                if (direction === 1 && currentScrollPos >= maxScroll) { currentScrollPos = maxScroll; direction = -1; } 
+                else if (direction === -1 && currentScrollPos <= 0) { currentScrollPos = 0; direction = 1; }
+            } else { currentScrollPos = 0; }
+        } else { currentScrollPos = container.scrollTop; }
+        requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+// MODAL FACTORY FUNCTIONS
+function showEmployeeModal() {
+    tempFactoryConfig = JSON.parse(JSON.stringify(activeFactoryConfig));
+    renderModalTable();
+    document.getElementById("employeeModal").style.display = "flex";
+}
+function renderModalTable() {
+    const factory = document.getElementById("factorySelect").value;
+    const tbody = document.getElementById("employeeTableBody");
+    tbody.innerHTML = "";
+    const groups = tempFactoryConfig[factory] || [];
+    groups.forEach((group, groupIndex) => {
+        tbody.innerHTML += `<tr class="modal-group-row"><td colspan="3" class="modal-group-header"><span>${group.title}</span></td><td class="modal-group-header" style="text-align: center;"><button class="btn-add-section" onclick="addMachineToGroup(${groupIndex})">+</button></td></tr>`;
+        group.machines.forEach((machine, machineIndex) => {
+            const total = getCircleCount(factory, machine);
+            let nameString = (customMachineData[machine] && customMachineData[machine].names) ? customMachineData[machine].names : "";
+            tbody.innerHTML += `<tr data-group="${groupIndex}" data-index="${machineIndex}"><td><input type="text" class="input-machine-name" value="${machine}" placeholder="Machine Name"></td><td style="text-align:center;"><input type="number" class="input-total-mp" value="${total}" min="1" max="5"></td><td><input type="text" class="input-emp-names" value="${nameString}" placeholder="Nama 1, Nama 2"></td><td style="text-align:center"><button class="btn-delete-row" onclick="deleteMachineRow(${groupIndex}, ${machineIndex})">×</button></td></tr>`;
+        });
+    });
+}
+function addMachineToGroup(groupIndex) { tempFactoryConfig[document.getElementById("factorySelect").value][groupIndex].machines.push("New Machine"); renderModalTable(); }
+function deleteMachineRow(groupIndex, machineIndex) { if (confirm("Hapus mesin ini?")) { tempFactoryConfig[document.getElementById("factorySelect").value][groupIndex].machines.splice(machineIndex, 1); renderModalTable(); } }
+async function saveEmployeeChanges() {
+    const btn = document.querySelector("button[onclick='saveEmployeeChanges()']");
+    const originalText = btn.innerText;
+    btn.innerText = "Syncing...";
+    const factory = document.getElementById("factorySelect").value;
+    const tbody = document.getElementById("employeeTableBody");
+    const rows = tbody.querySelectorAll("tr[data-group]");
+    let reconstructedGroups = JSON.parse(JSON.stringify(tempFactoryConfig[factory]));
+    reconstructedGroups.forEach(g => g.machines = []); 
+    rows.forEach(row => {
+        const groupIdx = row.getAttribute("data-group");
+        const nameVal = row.querySelector(".input-machine-name").value.trim();
+        const totalVal = row.querySelector(".input-total-mp").value;
+        const empNamesVal = row.querySelector(".input-emp-names").value;
+        if (nameVal) {
+            reconstructedGroups[groupIdx].machines.push(nameVal);
+            customMachineData[nameVal] = { count: parseInt(totalVal) || 2, names: empNamesVal };
+        }
+    });
+    tempFactoryConfig[factory] = reconstructedGroups;
+    activeFactoryConfig = JSON.parse(JSON.stringify(tempFactoryConfig));
+    await idbKeyval.set("FACTORY_CONFIG", activeFactoryConfig);
+    await idbKeyval.set("CUSTOM_MACHINE_DATA", customMachineData);
+    try {
+        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "SAVE_CONFIG", factory: factory, factoryConfig: activeFactoryConfig, customData: customMachineData }) });
+        alert("Success! Layout Synced to Operator.");
+    } catch(e) { alert("Saved Locally (Offline)"); }
+    btn.innerText = originalText;
+    loadAllData();
+    closeEmployeeModal();
+}
+function closeEmployeeModal() { document.getElementById("employeeModal").style.display = "none"; tempFactoryConfig = null; }
+
+window.addEventListener('DOMContentLoaded', () => {
+    loadAllData();
+    startAutoScroll();
+});
+</script>
+</body>
+</html>
